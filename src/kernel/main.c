@@ -28,46 +28,16 @@ void idle_task(void)
 
 void shell_task(void)
 {
-    kprintf(
-        "Welcome to TamCore Shell!\n");
     shell_init();
-
     shell_run();
-
     task_exit();
-}
-
-void task1(void)
-{
-    for (volatile uint64_t i = 0;
-         i < 10;
-         i++)
-    {
-        kprintf(
-            "Task 1 running\n");
-
-        scheduler_yield();
-    }
-}
-
-void task2(void)
-{
-    for (volatile uint64_t i = 0;
-         i < 10;
-         i++)
-    {
-        kprintf(
-            "Task 2 running\n");
-
-        scheduler_yield();
-    }
 }
 
 void kernel_main(void)
 {
+     
 
     console_init();
-
     logger_init();
 
     kprintf(
@@ -85,15 +55,21 @@ void kernel_main(void)
     klog_info(
         "Logger initialized");
 
+     
+
     interrupt_init();
 
     klog_info(
         "Interrupt manager initialized");
 
+     
+
     trap_init();
 
     klog_info(
         "Trap handler initialized");
+
+     
 
     plic_init();
 
@@ -105,15 +81,21 @@ void kernel_main(void)
     klog_info(
         "PLIC enabled");
 
+     
+
     uart_enable_interrupts();
 
     klog_info(
         "UART interrupts enabled");
 
+     
+
     memory_init();
 
     klog_info(
         "Memory initialized");
+
+     
 
     task_init();
 
@@ -122,41 +104,43 @@ void kernel_main(void)
     klog_info(
         "Scheduler initialized");
 
+     
+
+    kernel_ready = 1;
+
+     
+
     task_create(
         "shell",
         shell_task);
 
     task_create(
-        "task1",
-        task1);
-
-    task_create(
-        "task2",
-        task2);
-
-    // task_create(
-    //     "idle",
-    //     idle_task);
+        "idle",
+        idle_task);
 
     klog_info(
         "Kernel tasks created");
+
+     
 
     timer_boot_init();
 
     klog_info(
         "Timer configured");
 
-    kernel_ready = 1;
-
     timer_enable();
 
     klog_info(
         "Timer enabled");
 
+     
+
     klog_info(
         "Starting scheduler");
 
     scheduler_start();
+
+    // Should never reach here 
 
     panic(
         "Scheduler returned");

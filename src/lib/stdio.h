@@ -6,6 +6,7 @@
 #include <stdarg.h>
 
 
+void scheduler_yield(void);
 
 void kprint_char(char c);
 
@@ -23,8 +24,6 @@ void kprint_hex(
 
 void kprint_binary(
     uint64_t value);
-
-
 
 void kvprintf(
     const char *fmt,

@@ -11,22 +11,21 @@
 
 #define TASK_STACK_SIZE 4096
 
-typedef enum
-{
+    typedef enum {
 
-    TASK_UNUSED = 0,
+        TASK_UNUSED = 0,
 
-    TASK_READY,
+        TASK_READY,
 
-    TASK_RUNNING,
+        TASK_RUNNING,
 
-    TASK_BLOCKED,
+        TASK_BLOCKED,
 
-    TASK_SLEEPING,
+        TASK_SLEEPING,
 
-    TASK_ZOMBIE
+        TASK_ZOMBIE
 
-} task_state_t;
+    } task_state_t;
 
 typedef struct task
 {
@@ -36,6 +35,9 @@ typedef struct task
     uint32_t pid;
 
     task_state_t state;
+
+     
+    uint64_t wake_tick;
 
     cpu_context_t context;
 
@@ -60,6 +62,13 @@ task_t *task_current(void);
 
 void task_set_current(
     task_t *task);
+
+ 
+task_t *task_table(void);
+
+ 
+void task_sleep(
+    uint64_t ticks);
 
 void task_exit(void);
 

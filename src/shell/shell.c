@@ -92,17 +92,20 @@ void shell_run(void)
     while (1)
     {
         kprintf(">> ");
+
+        
         scheduler_yield();
 
+        
         kscanf(
             buffer,
             sizeof(buffer));
 
-        scheduler_yield();
-
+        
         command_execute(
             buffer);
 
+        
         scheduler_yield();
     }
 }

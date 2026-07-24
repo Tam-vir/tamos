@@ -86,13 +86,11 @@ trap_entry:
 
 
     ld t0,264(sp)
-
     csrw mstatus,t0
 
 
 
     ld t0,248(sp)
-
     csrw mepc,t0
 
 
@@ -100,12 +98,15 @@ trap_entry:
 
      
 
-
     ld ra,0(sp)
 
-
-
+    # Stash this task's real t0 value in mscratch. We need t0 as
+    # a scratch register further down to compute the (possibly
+    # new) task's stack pointer, and we restore the real value
+    # right before mret.
     ld t0,8(sp)
+    csrw mscratch,t0
+
     ld t1,16(sp)
     ld t2,24(sp)
 
@@ -150,6 +151,15 @@ trap_entry:
 
     ld tp,240(sp)
 
-    addi sp,sp,272
+    # Switch to the current task's saved stack pointer (this is
+    # the field scheduler_tick() updates when it picks a new
+    # task). This is the actual context switch — everything
+    # above just restored register *values*; this is what makes
+    # us resume on the right stack.
+    ld t0,224(sp)
+    mv sp,t0
+
+    # Now that sp has been switched, recover the real t0 value.
+    csrr t0,mscratch
 
     mret
