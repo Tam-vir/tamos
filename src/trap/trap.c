@@ -6,9 +6,9 @@
 #include "panic.h"
 #include "plic.h"
 
-int kernel_ready = 0;
+#include "scheduler.h"
 
- 
+int kernel_ready = 0;
 
 void trap_handler(
     trap_context_t *ctx)
@@ -16,8 +16,6 @@ void trap_handler(
 
     uint64_t cause =
         ctx->mcause;
-
-     
 
     if (IS_INTERRUPT(cause))
     {
@@ -28,46 +26,41 @@ void trap_handler(
         switch (irq)
         {
 
-             
-
         case INTERRUPT_MTI:
         {
 
             interrupt_dispatch(
                 INTERRUPT_MTI);
 
+            if (kernel_ready)
+            {
+                scheduler_tick(
+                    ctx);
+            }
+
             break;
         }
-
-             
 
         case INTERRUPT_MEI:
         {
 
-            uint32_t device_irq =
+            uint32_t device_irq;
+
+            device_irq =
                 plic_claim();
 
-             
-
-            if (device_irq == 0)
+            if (device_irq)
             {
-                break;
+
+                interrupt_dispatch(
+                    device_irq);
+
+                plic_complete(
+                    device_irq);
             }
-
-             
-
-            interrupt_dispatch(
-                device_irq);
-
-             
-
-            plic_complete(
-                device_irq);
 
             break;
         }
-
-             
 
         case INTERRUPT_MSI:
         {
@@ -90,12 +83,8 @@ void trap_handler(
         return;
     }
 
-     
-
     switch (cause)
     {
-
-         
 
     case 0:
 
@@ -104,16 +93,12 @@ void trap_handler(
 
         break;
 
-         
-
     case 1:
 
         panic(
             "Instruction access fault");
 
         break;
-
-         
 
     case 2:
 
@@ -122,16 +107,12 @@ void trap_handler(
 
         break;
 
-         
-
     case 3:
 
         panic(
             "Breakpoint");
 
         break;
-
-         
 
     case 4:
 
@@ -140,16 +121,12 @@ void trap_handler(
 
         break;
 
-         
-
     case 5:
 
         panic(
             "Load access fault");
 
         break;
-
-         
 
     case 6:
 
@@ -158,8 +135,6 @@ void trap_handler(
 
         break;
 
-         
-
     case 7:
 
         panic(
@@ -167,15 +142,16 @@ void trap_handler(
 
         break;
 
-         
-
     case 11:
-
-         
+    {
 
         ctx->mepc += 4;
 
+        scheduler_tick(
+            ctx);
+
         break;
+    }
 
     default:
 
@@ -187,8 +163,6 @@ void trap_handler(
     }
 }
 
- 
-
 void trap_init(void)
 {
 
@@ -196,8 +170,6 @@ void trap_init(void)
 
     uint64_t addr =
         (uint64_t)&trap_entry;
-
-     
 
     addr &= ~0x3ULL;
 

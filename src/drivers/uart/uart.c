@@ -4,48 +4,31 @@
 #include "spinlock.h"
 #include "interrupt.h"
 #include "plic.h"
-
- 
+#include "waitqueue.h"
 
 #define UART_BASE 0x10000000UL
 
 #define UART_RBR 0
 #define UART_THR 0
-
 #define UART_IER 1
-
 #define UART_FCR 2
-
 #define UART_LCR 3
-
 #define UART_MCR 4
-
 #define UART_LSR 5
-
- 
 
 #define UART_IRQ 10
 
- 
-
 #define UART_LSR_DATA_READY 0x01
-
 #define UART_LSR_THR_EMPTY 0x20
-
- 
 
 static volatile uint8_t *uart =
     (volatile uint8_t *)UART_BASE;
 
- 
-
 static ring_t uart_rx_buffer;
-
- 
 
 static spinlock_t uart_lock;
 
- 
+static wait_queue_t uart_waitqueue;
 
 void uart_init(void)
 {
@@ -55,10 +38,11 @@ void uart_init(void)
     spinlock_init(
         &uart_lock);
 
+    waitqueue_init(
+        &uart_waitqueue);
+
     uart[UART_FCR] =
         0x07;
-
-     
 
     uart[UART_IER] =
         0x00;
@@ -66,8 +50,6 @@ void uart_init(void)
 
 void uart_enable_interrupts(void)
 {
-    uart[UART_IER] =
-        0x01;
 
     interrupt_register(
         UART_IRQ,
@@ -79,9 +61,10 @@ void uart_enable_interrupts(void)
 
     plic_enable_irq(
         UART_IRQ);
-}
 
- 
+    uart[UART_IER] =
+        0x01;
+}
 
 void uart_putc(
     char c)
@@ -90,13 +73,13 @@ void uart_putc(
     while (!(uart[UART_LSR] &
              UART_LSR_THR_EMPTY))
     {
+        asm volatile(
+            "wfi");
     }
 
     uart[UART_THR] =
         c;
 }
-
- 
 
 void uart_puts(
     const char *str)
@@ -111,13 +94,9 @@ void uart_puts(
         }
 
         uart_putc(
-            *str);
-
-        str++;
+            *str++);
     }
 }
-
- 
 
 void uart_interrupt_handler(void)
 {
@@ -132,8 +111,6 @@ void uart_interrupt_handler(void)
         uint8_t c =
             uart[UART_RBR];
 
-         
-
         ring_push(
             &uart_rx_buffer,
             c);
@@ -141,25 +118,23 @@ void uart_interrupt_handler(void)
 
     spinlock_unlock(
         &uart_lock);
-}
 
- 
+    waitqueue_wake_all(
+        &uart_waitqueue);
+}
 
 char uart_getc(void)
 {
-
     uint8_t c;
 
     while (1)
     {
-
         spinlock_lock(
             &uart_lock);
 
         if (!ring_empty(
                 &uart_rx_buffer))
         {
-
             ring_pop(
                 &uart_rx_buffer,
                 &c);
@@ -172,10 +147,18 @@ char uart_getc(void)
 
         spinlock_unlock(
             &uart_lock);
+
+        if (uart[UART_LSR] &
+            UART_LSR_DATA_READY)
+        {
+            c = uart[UART_RBR];
+            return (char)c;
+        }
+
+        asm volatile(
+            "wfi");
     }
 }
-
- 
 
 void uart_gets(
     char *buffer,
@@ -190,8 +173,6 @@ void uart_gets(
         char c =
             uart_getc();
 
-         
-
         if (c == '\r' ||
             c == '\n')
         {
@@ -204,8 +185,6 @@ void uart_gets(
 
             return;
         }
-
-         
 
         if (c == '\b' ||
             c == 127)
@@ -222,8 +201,6 @@ void uart_gets(
 
             continue;
         }
-
-         
 
         if (c >= ' ' &&
             c <= '~' &&

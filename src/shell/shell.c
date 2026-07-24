@@ -4,7 +4,7 @@
 #include "stdio.h"
 
 #include "command.h"
-
+#include "scheduler.h"
 
 extern void cmd_help(
     int argc,
@@ -87,19 +87,22 @@ void shell_init(void)
 
 void shell_run(void)
 {
-
     char buffer[128];
 
     while (1)
     {
-
         kprintf(">> ");
+        scheduler_yield();
 
         kscanf(
             buffer,
             sizeof(buffer));
 
+        scheduler_yield();
+
         command_execute(
             buffer);
+
+        scheduler_yield();
     }
 }

@@ -5,9 +5,7 @@
 #include "memory.h"
 #include "string.h"
 
-    
-
-    void *malloc(size_t size)
+void *malloc(size_t size)
 {
     return heap_alloc(size);
 }
@@ -80,7 +78,7 @@ void *realloc(void *ptr,
             ? old_size
             : size;
 
-    kmemcpy(
+    memcpy(
         new_ptr,
         ptr,
         copy);
@@ -91,8 +89,6 @@ void *realloc(void *ptr,
 
     return new_ptr;
 }
-
-
 
 int atoi(
     const char *str)
@@ -146,8 +142,6 @@ long atol(
     return result * sign;
 }
 
-
-
 int abs(
     int value)
 {
@@ -155,8 +149,6 @@ int abs(
                ? -value
                : value;
 }
-
-
 
 void exit(
     int status)

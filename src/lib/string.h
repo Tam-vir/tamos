@@ -5,9 +5,9 @@
 
 size_t kstrlen(const char *str);
 
-void *kmemcpy(void *dest,
-              const void *src,
-              size_t size);
+void *memcpy(void *dest,
+             const void *src,
+             size_t size);
 
 void *kmemset(void *ptr,
               int value,

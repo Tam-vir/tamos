@@ -6,54 +6,41 @@
 
 trap_entry:
 
+    addi sp, sp, -272
 
-    addi sp,sp,-272
+    sd ra,   0(sp)
 
 
-
-     
-
-    addi t0,sp,272
-
-    sd t0,224(sp)
+    sd t0,   8(sp)
+    sd t1,  16(sp)
+    sd t2,  24(sp)
 
 
 
-     
-
-    sd ra,0(sp)
-
-
-    sd t0,8(sp)
-    sd t1,16(sp)
-    sd t2,24(sp)
+    sd s0,  32(sp)
+    sd s1,  40(sp)
 
 
 
-    sd s0,32(sp)
-    sd s1,40(sp)
+    sd a0,  48(sp)
+    sd a1,  56(sp)
+    sd a2,  64(sp)
+    sd a3,  72(sp)
+    sd a4,  80(sp)
+    sd a5,  88(sp)
+    sd a6,  96(sp)
+    sd a7, 104(sp)
 
 
 
-    sd a0,48(sp)
-    sd a1,56(sp)
-    sd a2,64(sp)
-    sd a3,72(sp)
-    sd a4,80(sp)
-    sd a5,88(sp)
-    sd a6,96(sp)
-    sd a7,104(sp)
-
-
-
-    sd s2,112(sp)
-    sd s3,120(sp)
-    sd s4,128(sp)
-    sd s5,136(sp)
-    sd s6,144(sp)
-    sd s7,152(sp)
-    sd s8,160(sp)
-    sd s9,168(sp)
+    sd s2, 112(sp)
+    sd s3, 120(sp)
+    sd s4, 128(sp)
+    sd s5, 136(sp)
+    sd s6, 144(sp)
+    sd s7, 152(sp)
+    sd s8, 160(sp)
+    sd s9, 168(sp)
     sd s10,176(sp)
     sd s11,184(sp)
 
@@ -65,39 +52,38 @@ trap_entry:
     sd t6,216(sp)
 
 
+    addi t0,sp,272
+
+    sd t0,224(sp)
+
+
 
     sd gp,232(sp)
+
     sd tp,240(sp)
 
 
-
-     
-
     csrr t0,mepc
+
     sd t0,248(sp)
 
 
+
     csrr t0,mcause
+
     sd t0,256(sp)
 
 
+
     csrr t0,mstatus
+
     sd t0,264(sp)
-
-
-
-
-     
 
     mv a0,sp
 
+
     call trap_handler
 
-
-
-
-
-     
 
     ld t0,264(sp)
 
@@ -112,11 +98,11 @@ trap_entry:
 
 
 
-
      
 
 
     ld ra,0(sp)
+
 
 
     ld t0,8(sp)
@@ -160,15 +146,10 @@ trap_entry:
     ld t6,216(sp)
 
 
-
     ld gp,232(sp)
 
     ld tp,240(sp)
 
-
-
     addi sp,sp,272
-
-
 
     mret

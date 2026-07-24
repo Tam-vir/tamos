@@ -42,6 +42,8 @@ CFLAGS = -nostdlib -nostartfiles -ffreestanding \
 
 CFLAGS += \
 	-I$(SRC_DIR)/kernel \
+	-I$(SRC_DIR)/kernel/task \
+	-I$(SRC_DIR)/kernel/sched \
 	-I$(SRC_DIR)/trap \
 	-I$(SRC_DIR)/console \
 	-I$(SRC_DIR)/logger \
@@ -82,6 +84,7 @@ LDFLAGS = -nostdlib \
 #==================================================
 
 BOOT_S = $(SRC_DIR)/boot/boot.S
+
 TRAP_S = $(SRC_DIR)/trap/trap.S
 
 
@@ -92,6 +95,24 @@ TRAP_S = $(SRC_DIR)/trap/trap.S
 
 KERNEL_SRC = \
 	$(SRC_DIR)/kernel/main.c
+
+
+
+#==================================================
+# Task
+#==================================================
+
+TASK_SRC = \
+	$(SRC_DIR)/kernel/task/task.c
+
+
+
+#==================================================
+# Scheduler
+#==================================================
+
+SCHED_SRC = \
+	$(SRC_DIR)/kernel/sched/scheduler.c
 
 
 
@@ -235,8 +256,17 @@ BOOT_O = $(BUILD_DIR)/boot.o
 TRAP_O = $(BUILD_DIR)/trap.o
 
 
+
 KERNEL_OBJ = \
 	$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(KERNEL_SRC))
+
+
+TASK_OBJ = \
+	$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(TASK_SRC))
+
+
+SCHED_OBJ = \
+	$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SCHED_SRC))
 
 
 TRAP_OBJ = \
@@ -300,6 +330,8 @@ OBJS = \
 	$(BOOT_O) \
 	$(TRAP_O) \
 	$(KERNEL_OBJ) \
+	$(TASK_OBJ) \
+	$(SCHED_OBJ) \
 	$(TRAP_OBJ) \
 	$(DRIVER_OBJ) \
 	$(CONSOLE_OBJ) \
@@ -413,11 +445,24 @@ size: $(TARGET)
 
 
 
+#==================================================
+# Checks
+#==================================================
+
+check-task: $(TARGET)
+	@echo "=== Task ==="
+	riscv64-linux-gnu-nm $(TARGET) | grep task
+
+
+check-sched: $(TARGET)
+	@echo "=== Scheduler ==="
+	riscv64-linux-gnu-nm $(TARGET) | grep scheduler
+
+
 check-ds: $(TARGET)
 	@echo "=== Data Structures ==="
 	riscv64-linux-gnu-nm $(TARGET) | \
 	grep -E "(list|queue|ring|bitmap|waitqueue)"
-
 
 
 check-interrupt: $(TARGET)
@@ -425,17 +470,14 @@ check-interrupt: $(TARGET)
 	riscv64-linux-gnu-nm $(TARGET) | grep interrupt
 
 
-
 check-plic: $(TARGET)
 	@echo "=== PLIC ==="
 	riscv64-linux-gnu-nm $(TARGET) | grep plic
 
 
-
 check-sync: $(TARGET)
 	@echo "=== Spinlock ==="
 	riscv64-linux-gnu-nm $(TARGET) | grep spinlock
-
 
 
 check-mm: $(TARGET)
@@ -455,6 +497,8 @@ check-mm: $(TARGET)
 	disasm \
 	symbols \
 	size \
+	check-task \
+	check-sched \
 	check-ds \
 	check-interrupt \
 	check-plic \

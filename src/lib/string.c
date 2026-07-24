@@ -1,8 +1,8 @@
 #include "string.h"
 
-void *kmemcpy(void *dest,
-              const void *src,
-              size_t size)
+void *memcpy(void *dest,
+             const void *src,
+             size_t size)
 {
     unsigned char *d = dest;
     const unsigned char *s = src;

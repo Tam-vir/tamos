@@ -1,22 +1,73 @@
 #include "console.h"
 #include "logger.h"
 #include "stdio.h"
+
 #include "timer.h"
 #include "uart.h"
+
 #include "trap.h"
 #include "interrupt.h"
 #include "plic.h"
-#include "shell.h"
+
 #include "memory.h"
+
+#include "task.h"
+#include "scheduler.h"
+
+#include "shell.h"
+
 #include "panic.h"
+
+void idle_task(void)
+{
+    while (1)
+    {
+        asm volatile("wfi");
+    }
+}
+
+void shell_task(void)
+{
+    kprintf(
+        "Welcome to TamCore Shell!\n");
+    shell_init();
+
+    shell_run();
+
+    task_exit();
+}
+
+void task1(void)
+{
+    for (volatile uint64_t i = 0;
+         i < 10;
+         i++)
+    {
+        kprintf(
+            "Task 1 running\n");
+
+        scheduler_yield();
+    }
+}
+
+void task2(void)
+{
+    for (volatile uint64_t i = 0;
+         i < 10;
+         i++)
+    {
+        kprintf(
+            "Task 2 running\n");
+
+        scheduler_yield();
+    }
+}
 
 void kernel_main(void)
 {
 
-     
     console_init();
 
-     
     logger_init();
 
     kprintf(
@@ -34,70 +85,79 @@ void kernel_main(void)
     klog_info(
         "Logger initialized");
 
-     
     interrupt_init();
 
     klog_info(
         "Interrupt manager initialized");
 
-     
     trap_init();
 
     klog_info(
         "Trap handler initialized");
 
-     
     plic_init();
 
     klog_info(
         "PLIC initialized");
 
-     
-
     plic_enable();
 
     klog_info(
-        "PLIC interrupts enabled");
+        "PLIC enabled");
 
     uart_enable_interrupts();
 
     klog_info(
         "UART interrupts enabled");
 
-     
     memory_init();
 
     klog_info(
-        "Memory manager initialized");
+        "Memory initialized");
 
-     
+    task_init();
+
+    scheduler_init();
+
+    klog_info(
+        "Scheduler initialized");
+
+    task_create(
+        "shell",
+        shell_task);
+
+    task_create(
+        "task1",
+        task1);
+
+    task_create(
+        "task2",
+        task2);
+
+    // task_create(
+    //     "idle",
+    //     idle_task);
+
+    klog_info(
+        "Kernel tasks created");
+
     timer_boot_init();
 
     klog_info(
         "Timer configured");
 
-     
+    kernel_ready = 1;
+
     timer_enable();
 
     klog_info(
-        "Timer interrupt enabled");
-
-    
-
-     
-    kernel_ready = 1;
+        "Timer enabled");
 
     klog_info(
-        "Kernel ready");
+        "Starting scheduler");
 
-     
-    shell_init();
-
-    klog_info(
-        "Shell initialized");
-
-    shell_run();
+    scheduler_start();
 
     panic(
-        "Shell exited");
+        "Scheduler returned");
 }
