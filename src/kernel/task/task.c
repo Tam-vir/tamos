@@ -310,10 +310,10 @@ void task_block(
     scheduler_remove(
         current_task);
 
-    // We're safely queued and marked BLOCKED now, so it's safe to
-    // let interrupts back in. A wakeup racing in right here just
-    // finds us already on the wait queue and unblocks us normally
-    // — it can't be lost, unlike if we unlocked before enqueuing.
+    
+    
+    
+    
     if (lock)
     {
         spinlock_unlock(lock);
@@ -321,8 +321,8 @@ void task_block(
 
     scheduler_yield();
 
-    // We've been woken and rescheduled. Re-acquire so callers can
-    // treat task_block() like an ordinary "wait under this lock".
+    
+    
     if (lock)
     {
         spinlock_lock(lock);

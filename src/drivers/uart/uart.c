@@ -71,7 +71,7 @@ void uart_interrupt_handler(void)
     }
     spinlock_unlock(&uart_lock);
 
-    // Wake every task blocked waiting for RX data.
+    
     task_wakeup_queue(&uart_waitqueue);
 }
 
@@ -83,12 +83,12 @@ char uart_getc(void)
 
     while (ring_empty(&uart_rx_buffer))
     {
-        // Blocks the calling task until uart_interrupt_handler()
-        // wakes it. task_block() drops uart_lock only after we're
-        // safely on uart_waitqueue and marked BLOCKED, and
-        // re-acquires it before returning here — so this loop
-        // always re-checks ring_empty() under the lock, same as
-        // any condvar-style wait loop should.
+        
+        
+        
+        
+        
+        
         task_block(&uart_waitqueue, &uart_lock);
     }
 
