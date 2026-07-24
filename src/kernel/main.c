@@ -140,7 +140,7 @@ void kernel_main(void)
 
     scheduler_start();
 
-    // Should never reach here 
+    
 
     panic(
         "Scheduler returned");
