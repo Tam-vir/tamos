@@ -17,5 +17,7 @@ extern int errno;
 #define ENOSYS 6
 #define ENOENT 7
 #define EOVERFLOW 8
+#define EBADF 9
+#define EMFILE 10
 
 #endif

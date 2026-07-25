@@ -2,12 +2,16 @@
 
 #include "interrupt.h"
 #include "panic.h"
+#include "task.h"
 
 static inline uint64_t cpu_id(void)
 {
-     
 
-    return 0;
+    task_t *task = task_current();
+
+    return task
+               ? (uint64_t)task->pid
+               : 0;
 }
 
 void spinlock_init(

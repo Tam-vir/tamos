@@ -11,6 +11,21 @@
 
 #define MAX_TASKS 64
 #define TASK_STACK_SIZE 4096
+#define MAX_FDS_PER_TASK 16
+
+#define TASK_PRIORITY_HIGH 0
+#define TASK_PRIORITY_NORMAL 1
+#define TASK_PRIORITY_LOW 2
+#define TASK_PRIORITY_LEVELS 3
+
+
+
+
+
+
+
+
+#define TASK_AGING_TICKS 30
 
 typedef enum
 {
@@ -31,6 +46,19 @@ typedef struct task
 
     task_state_t state;
 
+    
+    
+    uint8_t priority;
+
+    
+    
+    
+    uint8_t effective_priority;
+
+    
+    
+    uint64_t ready_since_tick;
+
     uint64_t wake_tick;
 
     cpu_context_t context;
@@ -41,9 +69,8 @@ typedef struct task
 
     char name[32];
 
-    
-    
     wait_entry_t wait_entry;
+    int fds[MAX_FDS_PER_TASK];
 
 } task_t;
 
@@ -52,6 +79,15 @@ void task_init(void);
 task_t *task_create(
     const char *name,
     void (*entry)(void));
+
+task_t *task_create_priority(
+    const char *name,
+    void (*entry)(void),
+    uint8_t priority);
+
+void task_set_priority(
+    task_t *task,
+    uint8_t priority);
 
 task_t *task_get(
     uint32_t pid);
@@ -69,20 +105,12 @@ void task_sleep(
 void task_wakeup(
     task_t *task);
 
-
-
-
-
-
-
 void task_block(
     wait_queue_t *queue,
     spinlock_t *lock);
 
-
 void task_unblock(
     task_t *task);
-
 
 void task_wakeup_queue(
     wait_queue_t *queue);

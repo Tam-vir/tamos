@@ -71,8 +71,7 @@ void uart_interrupt_handler(void)
     }
     spinlock_unlock(&uart_lock);
 
-    
-    task_wakeup_queue(&uart_waitqueue);
+        task_wakeup_queue(&uart_waitqueue);
 }
 
 char uart_getc(void)
@@ -83,17 +82,23 @@ char uart_getc(void)
 
     while (ring_empty(&uart_rx_buffer))
     {
-        
-        
-        
-        
-        
-        
-        task_block(&uart_waitqueue, &uart_lock);
+        spinlock_unlock(&uart_lock);
+
+        while (!(uart[UART_LSR] & UART_LSR_DATA_READY))
+        {
+            asm volatile("wfi");
+        }
+
+        spinlock_lock(&uart_lock);
+
+        while (uart[UART_LSR] & UART_LSR_DATA_READY)
+        {
+            uint8_t ch = uart[UART_RBR];
+            ring_push(&uart_rx_buffer, ch);
+        }
     }
 
     ring_pop(&uart_rx_buffer, &c);
-
     spinlock_unlock(&uart_lock);
 
     return (char)c;

@@ -1,11 +1,10 @@
-
-
 #include "task.h"
 
 #include "scheduler.h"
 #include "panic.h"
 #include "string.h"
 #include "timer.h"
+#include "fd.h"
 
 static task_t tasks[MAX_TASKS];
 
@@ -34,10 +33,21 @@ void task_init(void)
         tasks[i].state =
             TASK_UNUSED;
 
+        tasks[i].priority =
+            TASK_PRIORITY_NORMAL;
+
+        tasks[i].effective_priority =
+            TASK_PRIORITY_NORMAL;
+
+        tasks[i].ready_since_tick = 0;
+
         tasks[i].wake_tick = 0;
 
         list_init(
             &tasks[i].node);
+
+        list_init(
+            &tasks[i].wait_entry.node);
     }
 }
 
@@ -61,6 +71,17 @@ task_t *task_create(
     const char *name,
     void (*entry)(void))
 {
+    return task_create_priority(
+        name,
+        entry,
+        TASK_PRIORITY_NORMAL);
+}
+
+task_t *task_create_priority(
+    const char *name,
+    void (*entry)(void),
+    uint8_t priority)
+{
     task_t *task =
         task_alloc();
 
@@ -75,11 +96,29 @@ task_t *task_create(
         0,
         sizeof(task_t));
 
+    fd_init_task(
+        task);
+
     task->pid =
         next_pid++;
 
     task->state =
         TASK_READY;
+
+    if (priority >=
+        TASK_PRIORITY_LEVELS)
+    {
+        priority =
+            TASK_PRIORITY_LOW;
+    }
+
+    task->priority =
+        priority;
+
+    
+    
+    task->effective_priority =
+        priority;
 
     task->entry =
         entry;
@@ -94,6 +133,9 @@ task_t *task_create(
 
     list_init(
         &task->node);
+
+    list_init(
+        &task->wait_entry.node);
 
     uint64_t sp =
         (uint64_t)&task->stack[TASK_STACK_SIZE];
@@ -119,6 +161,44 @@ task_t *task_create(
         task);
 
     return task;
+}
+
+void task_set_priority(
+    task_t *task,
+    uint8_t priority)
+{
+    if (!task)
+    {
+        return;
+    }
+
+    if (priority >=
+        TASK_PRIORITY_LEVELS)
+    {
+        priority =
+            TASK_PRIORITY_LOW;
+    }
+
+    
+    
+    
+    
+    
+    if (task->state ==
+        TASK_READY)
+    {
+        scheduler_remove(task);
+
+        task->priority =
+            priority;
+
+        scheduler_add(task);
+    }
+    else
+    {
+        task->priority =
+            priority;
+    }
 }
 
 task_t *task_get(
@@ -186,9 +266,6 @@ void task_wakeup(
     }
 
     task->wake_tick = 0;
-
-    task->state =
-        TASK_READY;
 
     scheduler_add(
         task);
@@ -273,6 +350,9 @@ void task_exit(void)
             "No current task");
     }
 
+    fd_close_all(
+        current_task);
+
     current_task->state =
         TASK_ZOMBIE;
 
@@ -297,6 +377,9 @@ void task_block(
         return;
     }
 
+    list_init(
+        &current_task->wait_entry.node);
+
     current_task->wait_entry.data =
         current_task;
 
@@ -310,10 +393,6 @@ void task_block(
     scheduler_remove(
         current_task);
 
-    
-    
-    
-    
     if (lock)
     {
         spinlock_unlock(lock);
@@ -321,8 +400,6 @@ void task_block(
 
     scheduler_yield();
 
-    
-    
     if (lock)
     {
         spinlock_lock(lock);

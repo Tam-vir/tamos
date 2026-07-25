@@ -1,5 +1,3 @@
-
-
 #include "scheduler.h"
 
 #include "panic.h"
@@ -8,14 +6,19 @@
 #include "timer.h"
 #include "stdio.h"
 
-static list_node_t ready_queue;
+static list_node_t ready_queues[TASK_PRIORITY_LEVELS];
 
 static task_t *current = 0;
 
 void scheduler_init(void)
 {
-    list_init(
-        &ready_queue);
+    for (int i = 0;
+         i < TASK_PRIORITY_LEVELS;
+         i++)
+    {
+        list_init(
+            &ready_queues[i]);
+    }
 
     current = 0;
 }
@@ -29,8 +32,6 @@ void scheduler_add(
             "scheduler_add NULL");
     }
 
-     
-
     if (task->state ==
             TASK_ZOMBIE ||
         task->state ==
@@ -38,8 +39,6 @@ void scheduler_add(
     {
         return;
     }
-
-     
 
     if (task->node.next !=
             &task->node ||
@@ -53,8 +52,30 @@ void scheduler_add(
     task->state =
         TASK_READY;
 
+    
+    
+    
+    
+    
+    
+    uint8_t priority =
+        task->priority;
+
+    if (priority >=
+        TASK_PRIORITY_LEVELS)
+    {
+        priority =
+            TASK_PRIORITY_LOW;
+    }
+
+    task->effective_priority =
+        priority;
+
+    task->ready_since_tick =
+        timer_get_ticks();
+
     list_push_back(
-        &ready_queue,
+        &ready_queues[priority],
         &task->node);
 }
 
@@ -101,18 +122,71 @@ void scheduler_wakeup_tasks(void)
     }
 }
 
-task_t *scheduler_next(void)
+void scheduler_age_tasks(void)
 {
-     
+    uint64_t now =
+        timer_get_ticks();
 
+    task_t *tasks =
+        task_table();
+
+    for (uint32_t i = 0;
+         i < MAX_TASKS;
+         i++)
+    {
+        task_t *task =
+            &tasks[i];
+
+        if (task->state !=
+            TASK_READY)
+        {
+            continue;
+        }
+
+        
+        if (task->effective_priority ==
+            TASK_PRIORITY_HIGH)
+        {
+            continue;
+        }
+
+        if (now - task->ready_since_tick <
+                      TASK_AGING_TICKS)
+        {
+            continue;
+        }
+
+        
+        
+        
+        list_remove(
+            &task->node);
+
+        task->effective_priority--;
+
+        
+        
+        
+        task->ready_since_tick =
+            now;
+
+        list_push_back(
+            &ready_queues[task->effective_priority],
+            &task->node);
+    }
+}
+
+static void
+scheduler_cleanup_queue(
+    list_node_t *queue)
+{
     list_node_t *node;
     list_node_t *tmp;
 
-    for (node = ready_queue.next;
-         node != &ready_queue;)
+    for (node = queue->next;
+         node != queue;)
     {
-        tmp =
-            node->next;
+        tmp = node->next;
 
         task_t *task =
             container_of(
@@ -125,40 +199,56 @@ task_t *scheduler_next(void)
             task->state ==
                 TASK_UNUSED)
         {
-            list_remove(
-                node);
+            list_remove(node);
         }
 
         node = tmp;
     }
+}
 
-    node =
-        list_front(
-            &ready_queue);
-
-    if (!node)
+task_t *scheduler_next(void)
+{
+    for (int i = 0;
+         i < TASK_PRIORITY_LEVELS;
+         i++)
     {
-        return 0;
+        scheduler_cleanup_queue(
+            &ready_queues[i]);
     }
 
-    list_remove(
-        node);
-
-    task_t *task =
-        container_of(
-            node,
-            task_t,
-            node);
-
-    if (task->state ==
-            TASK_ZOMBIE ||
-        task->state ==
-            TASK_UNUSED)
+    for (int i = 0;
+         i < TASK_PRIORITY_LEVELS;
+         i++)
     {
-        return scheduler_next();
+        list_node_t *node =
+            list_front(
+                &ready_queues[i]);
+
+        if (!node)
+        {
+            continue;
+        }
+
+        list_remove(node);
+
+        task_t *task =
+            container_of(
+                node,
+                task_t,
+                node);
+
+        if (task->state ==
+                TASK_ZOMBIE ||
+            task->state ==
+                TASK_UNUSED)
+        {
+            continue;
+        }
+
+        return task;
     }
 
-    return task;
+    return 0;
 }
 
 void scheduler_tick(
@@ -169,11 +259,13 @@ void scheduler_tick(
         return;
     }
 
-     
-
     scheduler_wakeup_tasks();
 
-     
+    
+    
+    
+    
+    scheduler_age_tasks();
 
     if (!current)
     {
@@ -201,12 +293,8 @@ void scheduler_tick(
         return;
     }
 
-     
-
     current->context =
         *ctx;
-
-     
 
     if (current->state ==
         TASK_RUNNING)
@@ -214,8 +302,6 @@ void scheduler_tick(
         scheduler_add(
             current);
     }
-
-     
 
     task_t *next =
         scheduler_next();
@@ -234,8 +320,6 @@ void scheduler_tick(
 
     task_set_current(
         current);
-
-     
 
     *ctx =
         current->context;

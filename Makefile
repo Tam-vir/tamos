@@ -63,7 +63,10 @@ CFLAGS += \
 	-I$(SRC_DIR)/drivers/plic \
 	-I$(SRC_DIR)/shell \
 	-I$(SRC_DIR)/commands \
-	-I$(SRC_DIR)/lib
+	-I$(SRC_DIR)/lib \
+	-I$(SRC_DIR)/ipc/pipe \
+	-I$(SRC_DIR)/fd \
+	-I$(SRC_DIR)/syscall
 
 
 
@@ -126,6 +129,15 @@ TRAP_SRC = \
 
 
 #==================================================
+# Syscall
+#==================================================
+
+SYSCALL_SRC = \
+	$(SRC_DIR)/syscall/syscall.c
+
+
+
+#==================================================
 # Drivers
 #==================================================
 
@@ -177,7 +189,10 @@ INTERRUPT_SRC = \
 #==================================================
 
 SYNC_SRC = \
-	$(SRC_DIR)/sync/spinlock.c
+	$(SRC_DIR)/sync/spinlock.c \
+	$(SRC_DIR)/sync/mutex.c \
+	$(SRC_DIR)/sync/cond.c \
+	$(SRC_DIR)/sync/semaphore.c
 
 
 
@@ -205,6 +220,24 @@ DS_SRC = \
 
 
 #==================================================
+# IPC
+#==================================================
+
+IPC_SRC = \
+	$(SRC_DIR)/ipc/pipe/pipe.c
+
+
+
+#==================================================
+# File Descriptors
+#==================================================
+
+FD_SRC = \
+	$(SRC_DIR)/fd/fd.c
+
+
+
+#==================================================
 # Libraries
 #==================================================
 
@@ -214,7 +247,8 @@ LIB_SRC = \
 	$(SRC_DIR)/lib/stdio.c \
 	$(SRC_DIR)/lib/math.c \
 	$(SRC_DIR)/lib/stdlib.c \
-	$(SRC_DIR)/lib/errno.c
+	$(SRC_DIR)/lib/errno.c \
+	$(SRC_DIR)/lib/unistd.c
 
 
 
@@ -273,6 +307,10 @@ TRAP_OBJ = \
 	$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(TRAP_SRC))
 
 
+SYSCALL_OBJ = \
+	$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SYSCALL_SRC))
+
+
 DRIVER_OBJ = \
 	$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(DRIVER_SRC))
 
@@ -305,6 +343,14 @@ DS_OBJ = \
 	$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(DS_SRC))
 
 
+IPC_OBJ = \
+	$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(IPC_SRC))
+
+
+FD_OBJ = \
+	$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(FD_SRC))
+
+
 LIB_OBJ = \
 	$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(LIB_SRC))
 
@@ -333,6 +379,7 @@ OBJS = \
 	$(TASK_OBJ) \
 	$(SCHED_OBJ) \
 	$(TRAP_OBJ) \
+	$(SYSCALL_OBJ) \
 	$(DRIVER_OBJ) \
 	$(CONSOLE_OBJ) \
 	$(LOGGER_OBJ) \
@@ -341,6 +388,8 @@ OBJS = \
 	$(SYNC_OBJ) \
 	$(MM_OBJ) \
 	$(DS_OBJ) \
+	$(IPC_OBJ) \
+	$(FD_OBJ) \
 	$(LIB_OBJ) \
 	$(SHELL_OBJ) \
 	$(COMMAND_SYSTEM_OBJ) \
@@ -476,13 +525,33 @@ check-plic: $(TARGET)
 
 
 check-sync: $(TARGET)
-	@echo "=== Spinlock ==="
-	riscv64-linux-gnu-nm $(TARGET) | grep spinlock
+	@echo "=== Synchronization ==="
+	riscv64-linux-gnu-nm $(TARGET) | \
+	grep -E "(spinlock|mutex|semaphore|cond)"
 
 
 check-mm: $(TARGET)
 	@echo "=== Memory ==="
 	riscv64-linux-gnu-nm $(TARGET) | grep -E "(heap|memory)"
+
+
+check-ipc: $(TARGET)
+	@echo "=== IPC ==="
+	riscv64-linux-gnu-nm $(TARGET) | grep pipe
+
+
+check-fd: $(TARGET)
+	@echo "=== File Descriptors ==="
+	riscv64-linux-gnu-nm $(TARGET) | grep -E "(fd_|^fd)"
+
+
+check-syscall: $(TARGET)
+	@echo "=== Syscall ==="
+	riscv64-linux-gnu-nm $(TARGET) | grep syscall
+
+
+check-all: check-task check-sched check-ds check-interrupt check-plic check-sync check-mm check-ipc check-fd check-syscall
+	@echo "=== All Checks Complete ==="
 
 
 
@@ -503,4 +572,8 @@ check-mm: $(TARGET)
 	check-interrupt \
 	check-plic \
 	check-sync \
-	check-mm
+	check-mm \
+	check-ipc \
+	check-fd \
+	check-syscall \
+	check-all

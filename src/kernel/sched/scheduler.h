@@ -6,7 +6,7 @@
 #include "task.h"
 #include "context.h"
 
-    void scheduler_init(void);
+void scheduler_init(void);
 
 void scheduler_add(
     task_t *task);
@@ -19,8 +19,13 @@ task_t *scheduler_next(void);
 void scheduler_tick(
     cpu_context_t *ctx);
 
- 
 void scheduler_wakeup_tasks(void);
+
+
+
+
+
+void scheduler_age_tasks(void);
 
 void scheduler_yield(void);
 

@@ -5,6 +5,7 @@
 #include "plic.h"
 #include "scheduler.h"
 #include "stdio.h"
+#include "syscall.h"
 
 int kernel_ready = 0;
 
@@ -88,9 +89,18 @@ void trap_handler(trap_context_t *ctx)
     case 9:
         panic("ECALL from S-mode");
         break;
-    case 11:            
-        ctx->mepc += 4; 
-        scheduler_tick(ctx);
+    case 11:
+        ctx->mepc += 4;
+
+        if (ctx->a7 == SYS_YIELD)
+        {
+            scheduler_tick(ctx);
+        }
+        else
+        {
+            syscall_dispatch(ctx);
+        }
+
         break;
     default:
         panicf("Unhandled exception %u", cause);
